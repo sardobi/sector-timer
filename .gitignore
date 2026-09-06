@@ -1,0 +1,10 @@
+bin/
+gen/
+*.prg
+*.prg.debug.xml
+*.iq
+*.der
+*.pem
+*.key
+developer_key*
+.DS_Store

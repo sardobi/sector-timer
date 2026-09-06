@@ -1,0 +1,30 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build watch PRG",
+            "type": "shell",
+            "command": "powershell",
+            "args": [
+                "-NoProfile", "-ExecutionPolicy", "Bypass",
+                "-File", "${workspaceFolder}\\tools\\build.ps1",
+                "-DeveloperKey", "${config:monkeyC.developerKeyPath}"
+            ],
+            "group": { "kind": "build", "isDefault": true },
+            "problemMatcher": []
+        },
+        {
+            "label": "Run timer tests",
+            "type": "shell",
+            "command": "powershell",
+            "args": [
+                "-NoProfile", "-ExecutionPolicy", "Bypass",
+                "-File", "${workspaceFolder}\\tools\\build.ps1",
+                "-Mode", "Test",
+                "-DeveloperKey", "${config:monkeyC.developerKeyPath}"
+            ],
+            "group": "test",
+            "problemMatcher": []
+        }
+    ]
+}

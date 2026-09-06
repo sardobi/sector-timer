@@ -1,0 +1,127 @@
+import Toybox.Lang;
+import Toybox.Math;
+
+module Dial {
+    const LAP_MS = 3600000;
+    const MAX_MS = 2 * LAP_MS;
+
+    function angleAt(x as Number, y as Number, cx as Number, cy as Number) as Float {
+        var angle = Math.atan2((cx - x).toFloat(), (cy - y).toFloat()) * 180.0 / Math.PI;
+        return (angle < 0 ? angle + 360.0 : angle).toFloat();
+    }
+
+    function clampAngle(angle as Float) as Float {
+        return angle < 0.0 ? 0.0 : (angle > 720.0 ? 720.0 : angle);
+    }
+
+    function durationAt(angle as Float) as Number {
+        return Math.round(clampAngle(angle) / 6.0).toNumber() * 60000;
+    }
+
+}
+
+class TimerModel {
+    static const IDLE = 0;
+    static const SETTING = 1;
+    static const RUNNING = 2;
+    static const PAUSED = 3;
+    static const FINISHED = 4;
+
+    var state as Number = IDLE;
+    private var _durationMs as Number = 0;
+    private var _startedAt as Number = 0;
+    private var _lastAngle as Float = 0.0;
+    private var _dragAngle as Float = 0.0;
+
+    function initialize() {
+    }
+
+    function beginDrag(angle as Float) as Void {
+        state = SETTING;
+        _lastAngle = angle;
+        // A finger just right of twelve must still be able to drag anticlockwise from zero.
+        _dragAngle = angle >= 357.0 ? 0.0 : angle;
+        _durationMs = Dial.durationAt(_dragAngle);
+    }
+
+    function moveDrag(angle as Float) as Void {
+        if (state != SETTING) {
+            return;
+        }
+        // Accumulate travel across twelve o'clock instead of wrapping to zero.
+        var delta = angle - _lastAngle;
+        if (delta > 180.0) {
+            delta -= 360.0;
+        } else if (delta < -180.0) {
+            delta += 360.0;
+        }
+        _dragAngle = Dial.clampAngle(_dragAngle + delta);
+        _lastAngle = angle;
+        _durationMs = Dial.durationAt(_dragAngle);
+    }
+
+    function endDrag(now as Number) as Void {
+        if (state != SETTING) {
+            return;
+        }
+        if (_durationMs == 0) {
+            reset();
+        } else {
+            _startedAt = now;
+            state = RUNNING;
+        }
+    }
+
+    function remainingMs(now as Number) as Number {
+        if (state != RUNNING) {
+            return _durationMs;
+        }
+        // System.getTimer is a signed 32-bit uptime clock. Long arithmetic handles
+        // both signed rollover and the full wrap without relying on callback frequency.
+        var elapsed = (now.toLong() - _startedAt.toLong() + 4294967296l) % 4294967296l;
+        return elapsed >= _durationMs ? 0 : _durationMs - elapsed.toNumber();
+    }
+
+    function sectorAngle(now as Number) as Float {
+        var remaining = remainingMs(now);
+        return remaining >= Dial.LAP_MS ? 360.0 : (remaining * 360.0 / Dial.LAP_MS).toFloat();
+    }
+
+    function innerSectorAngle(now as Number) as Float {
+        var extra = remainingMs(now) - Dial.LAP_MS;
+        return extra <= 0 ? 0.0 : (extra * 360.0 / Dial.LAP_MS).toFloat();
+    }
+
+    function tick(now as Number) as Boolean {
+        if (state == RUNNING && remainingMs(now) == 0) {
+            _durationMs = 0;
+            state = FINISHED;
+            return true;
+        }
+        return false;
+    }
+
+    function togglePause(now as Number) as Void {
+        if (state == RUNNING) {
+            _durationMs = remainingMs(now);
+            state = _durationMs == 0 ? FINISHED : PAUSED;
+        } else if (state == PAUSED) {
+            _startedAt = now;
+            state = RUNNING;
+        }
+    }
+
+    function tap(now as Number) as Void {
+        if (state == FINISHED) {
+            reset();
+        } else {
+            togglePause(now);
+        }
+    }
+
+    function reset() as Void {
+        state = IDLE;
+        _durationMs = 0;
+        _startedAt = 0;
+    }
+}
