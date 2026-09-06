@@ -174,6 +174,38 @@ In VS Code, open this folder and use **Run Build Task** or **Run timer tests**.
 These tasks read the existing `monkeyC.developerKeyPath` user setting.
 F5 uses the Monkey C debugger. No private key path is stored in this repository.
 
+### Tuning the status icons
+
+Edit the constants at the top of `source\TimerView.mc`:
+
+```monkeyc
+const STATUS_ICON_HEIGHT = 144;
+const PAUSE_BACKDROP_PADDING = 16;
+```
+
+`STATUS_ICON_HEIGHT` is the shared height in pixels of the white pause and bell
+glyphs. Both have the same nominal width (76% of their height), and all their
+parts scale together. The default is about 37% of the watch's 390-pixel screen
+height. For example, use `120` for smaller icons or `168` for larger ones.
+`PAUSE_BACKDROP_PADDING` controls the extra space around the pause icon's
+dark circular background; it does not change either glyph's size.
+These are drawing settings only: the centre tap target and outer drag area
+remain unchanged. Rebuild and copy the new `bin\VisualTimer.prg` to the watch
+after editing; an already-installed app will not pick up source changes.
+
+### Back navigation
+
+The vivoactive 5 manual describes Back as returning to the previous screen,
+except during an activity. For this single-screen app, the intended
+background-enabled behavior is to leave the app without cancelling the timer.
+Cancellation should be a separate, deliberate action rather than a side effect
+of navigating away. See Garmin's
+[device overview](https://www8.garmin.com/manuals/webhelp/GUID-5D183A14-BB43-4A9B-B441-5F824214CE40/EN-US/GUID-E8D90973-F651-4F66-9A08-A8858C2CB98E.html).
+
+This is not implemented yet: Back still resets, then exits on a second press.
+Change it alongside persistent countdown state and background alarm scheduling,
+not before, so leaving the app does not silently discard an active alarm.
+
 ## Install on your watch
 
 1. Build the release PRG with the command above.

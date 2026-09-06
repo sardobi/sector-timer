@@ -7,6 +7,10 @@ import Toybox.Timer;
 import Toybox.WatchUi;
 
 class TimerView extends WatchUi.View {
+    // Shared glyph height in pixels; both icons scale from this value.
+    const STATUS_ICON_HEIGHT = 144;
+    const PAUSE_BACKDROP_PADDING = 16;
+
     var model as TimerModel;
     var centerX as Number = 195;
     var centerY as Number = 195;
@@ -109,11 +113,7 @@ class TimerView extends WatchUi.View {
             dc.fillCircle(centerX - Math.sin(angle) * (radius - 8),
                 centerY - Math.cos(angle) * (radius - 8), 5);
         } else if (model.state == TimerModel.PAUSED) {
-            dc.setColor(0x303030, Graphics.COLOR_TRANSPARENT);
-            dc.fillCircle(centerX, centerY, 29);
-            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-            dc.fillRectangle(centerX - 13, centerY - 15, 8, 30);
-            dc.fillRectangle(centerX + 5, centerY - 15, 8, 30);
+            drawPause(dc);
         } else if (model.state == TimerModel.FINISHED) {
             drawBell(dc);
         }
@@ -136,12 +136,34 @@ class TimerView extends WatchUi.View {
         dc.setPenWidth(1);
     }
 
-    private function drawBell(dc as Graphics.Dc) as Void {
+    private function drawPause(dc as Graphics.Dc) as Void {
+        var height = STATUS_ICON_HEIGHT;
+        var width = (height * 0.76).toNumber();
+        var barWidth = (height * 0.23).toNumber();
+        var left = centerX - width / 2;
+        var top = centerY - height / 2;
+        var backdropRadius = Math.sqrt(width * width + height * height) / 2;
+        dc.setColor(0x303030, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(centerX, centerY, backdropRadius + PAUSE_BACKDROP_PADDING);
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        dc.fillCircle(centerX, centerY - 7, 15);
-        dc.fillRectangle(centerX - 15, centerY - 7, 30, 20);
-        dc.fillRectangle(centerX - 19, centerY + 12, 38, 5);
-        dc.fillCircle(centerX, centerY + 24, 4);
+        dc.fillRectangle(left, top, barWidth, height);
+        dc.fillRectangle(left + width - barWidth, top, barWidth, height);
+    }
+
+    private function drawBell(dc as Graphics.Dc) as Void {
+        var height = STATUS_ICON_HEIGHT;
+        var top = centerY - height / 2;
+        var domeRadius = (height * 0.30).toNumber();
+        var domeY = top + domeRadius;
+        var rimWidth = (height * 0.76).toNumber();
+        var rimY = top + (height * 0.68).toNumber();
+        var rimHeight = (height * 0.10).toNumber();
+        var clapperRadius = (height * 0.08).toNumber();
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(centerX, domeY, domeRadius);
+        dc.fillRectangle(centerX - domeRadius, domeY, domeRadius * 2, rimY - domeY);
+        dc.fillRectangle(centerX - rimWidth / 2, rimY, rimWidth, rimHeight);
+        dc.fillCircle(centerX, top + height - clapperRadius, clapperRadius);
     }
 
     private function drawSector(dc as Graphics.Dc, angle as Float, sectorRadius as Number) as Void {
