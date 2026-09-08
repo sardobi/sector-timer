@@ -32,9 +32,9 @@ class TimerSession {
         }
     }
 
-    function beginDrag(angle as Float) as Void {
+    function beginDrag(angle as Float) as Boolean {
         reload();
-        model.beginAdjustment(angle, modelTime);
+        return model.beginAdjustment(angle, modelTime);
     }
 
     function moveDrag(angle as Float) as Void {

@@ -125,6 +125,10 @@ class TimerView extends WatchUi.View {
         return dx * dx + dy * dy < 90 * 90;
     }
 
+    function beginDrag(x as Number, y as Number) as Boolean {
+        return isDial(x, y) && session.beginDrag(Dial.angleAt(x, y, centerX, centerY));
+    }
+
     function onUpdate(dc as Graphics.Dc) as Void {
         var now = session.modelTime;
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
@@ -147,12 +151,10 @@ class TimerView extends WatchUi.View {
             dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
             dc.fillCircle(centerX, centerY, HUB_RADIUS);
         }
-        if (model.state == TimerModel.SETTING) {
-            var angle = model.remainingMs(now) * 2.0 * Math.PI / Dial.LAP_MS;
-            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-            dc.fillCircle(centerX - Math.sin(angle) * (radius - 8),
-                centerY - Math.cos(angle) * (radius - 8), 5);
-        } else if (model.state == TimerModel.PAUSED) {
+        var handle = Dial.pointAt(Dial.endpointAngle(model.remainingMs(now)), radius, centerX, centerY);
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(handle[0], handle[1], 5);
+        if (model.state == TimerModel.PAUSED) {
             drawPause(dc);
         } else if (model.state == TimerModel.FINISHED) {
             drawBell(dc);
@@ -240,12 +242,10 @@ class TimerView extends WatchUi.View {
         // Small triangles respect the 64-point polygon limit, even for sectors >180 degrees.
         for (var start = 0.0; start < angle; start += 4.0) {
             var end = start + 4.0 < angle ? start + 4.0 : angle;
-            var a = start * Math.PI / 180.0;
-            var b = end * Math.PI / 180.0;
             dc.fillPolygon([
                 [centerX, centerY],
-                [centerX - Math.sin(a) * sectorRadius, centerY - Math.cos(a) * sectorRadius],
-                [centerX - Math.sin(b) * sectorRadius, centerY - Math.cos(b) * sectorRadius]
+                Dial.pointAt(start, sectorRadius, centerX, centerY),
+                Dial.pointAt(end, sectorRadius, centerX, centerY)
             ]);
         }
     }

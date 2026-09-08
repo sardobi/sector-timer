@@ -10,7 +10,8 @@ Currently the alarm does not function very reliably when the app is backgrounded
 
 ## Controls
 
-- Drag the outer dial anticlockwise from twelve o'clock, or start at any position.
+- Grab on or near the small white endpoint handle on the outer dial and drag
+  anticlockwise. On an empty timer the handle is at twelve o'clock.
   The selection snaps to whole minutes. Keep dragging past twelve to select a
   second and third revolution, up to **180 minutes**. Drag clockwise to reduce
   the selection.
@@ -25,10 +26,12 @@ Currently the alarm does not function very reliably when the app is backgrounded
 - There is **no text or numeric countdown on the dial**. A small white centre
   hub and the minute pips remain visible during countdown. The large pause/bell
   icons replace the hub while paused/finished. The empty dial shows a curved
-  anticlockwise arrow as a drag hint. A selection marker appears while dragging.
+  anticlockwise arrow as a drag hint. The endpoint handle remains visible,
+  including while running or paused. For multi-hour timers it follows the
+  active purple/blue sector's angle, projected onto the outer dial.
 - Tap the centre or press the top/select button to pause or resume. A white
   **pause icon** stays visible for the entire pause, disappearing on resume.
-- Drag again to adjust the current remaining time, including while paused or
+- Grab the endpoint again to adjust the current remaining time, including while paused or
   running. The starting touch does not change the selection or drop completed
   revolutions: dragging a 90-minute timer further starts at 90, not 30 minutes.
   Anticlockwise movement adds time; clockwise movement subtracts it. The previous
@@ -46,11 +49,13 @@ Currently the alarm does not function very reliably when the app is backgrounded
 
 Crossing twelve o'clock adds or subtracts time without resetting the selection.
 The prototype clamps at zero and 180 minutes; it does not silently wrap.
-Starting within half a minute to the right of twelve is treated as starting at
-zero on an empty/finished dial, so an imprecise initial touch still permits an
-anticlockwise drag. Only a drag starting in the dial's outer area sets or adjusts
-the timer. When adjusting, any starting position is allowed; subsequent movement
-is relative to the remaining duration. Unmoved selections retain their exact
+Starts within 18 degrees either side of the endpoint are accepted in the dial's
+outer touch area. Grabbing just right of twelve on an empty/finished dial starts
+at zero, not 59 minutes. A swipe starting elsewhere is ignored for its entire
+gesture, even if it subsequently crosses the handle. There is no separate tap
+required: press near the handle, drag, and release. Once grabbed, movement is
+unrestricted around the dial and relative to the remaining duration.
+Unmoved selections retain their exact
 remainder; movement snaps to whole minutes. Taps on the outer dial do nothing.
 On the simulator, use a mouse press, move, and release.
 
@@ -282,6 +287,11 @@ These are drawing settings only: the centre tap target and outer drag area
 remain unchanged. Rebuild and copy the new `bin\SectorTimer.prg` to the watch
 after editing; an already-installed app will not pick up source changes.
 
+To make grabbing the endpoint more or less forgiving, edit
+`Dial.HANDLE_TOLERANCE_DEGREES` in `source\TimerModel.mc` (default `18.0`,
+on each side). This affects only where a drag may start, not its movement or
+minute rounding.
+
 The background notification is customisable: edit `TimerFinished` (subtitle)
 and `OpenTimer` (body) in `resources\strings\strings.xml`. The defaults are
 **Time's up!** and **Your countdown has finished.** Its title is `AppName`;
@@ -333,8 +343,11 @@ and single-tap pause/resume and dismissal. Additional native tests cover saved
 record validation, restart recovery, background completion, stale callbacks,
 pause/cancel/replacement, registration failure, and interrupted drags.
 `DialRefinementTests.mc` covers relative adjustment from the current remainder,
-arbitrary starting touch positions, unchanged drags, hour-boundary crossings,
+near-endpoint starting touch positions, unchanged drags, hour-boundary crossings,
 three-layer countdowns and recovery of timers longer than two hours.
+`EndpointDragTests.mc` covers the tolerance on both sides of twelve, rejected
+starts, untouched background registration, multi-hour handles, radial hit testing,
+and unrestricted movement after grabbing the endpoint.
 `BackgroundReliabilityTests.mc` covers notification exceptions, replacement
 during notification, early-callback rearming, exact registration readback,
 bounded log persistence, and leaving at the deadline without consuming the alarm.

@@ -5,6 +5,28 @@ module Dial {
     const LAP_MS = 3600000;
     const MAX_MS = TimerState.MAX_MS;
     const MAX_ANGLE = MAX_MS * 360.0 / LAP_MS;
+    const HANDLE_TOLERANCE_DEGREES = 18.0;
+
+    function endpointAngle(remaining as Number) as Float {
+        return ((remaining % LAP_MS) * 360.0 / LAP_MS).toFloat();
+    }
+
+    function pointAt(angle as Float, radius as Number, cx as Number, cy as Number) as [Number, Number] {
+        var radians = angle * Math.PI / 180.0;
+        return [
+            Math.round(cx - Math.sin(radians) * radius).toNumber(),
+            Math.round(cy - Math.cos(radians) * radius).toNumber()
+        ];
+    }
+
+    function isNearEndpoint(angle as Float, endpoint as Float) as Boolean {
+        var difference = angle - endpoint;
+        if (difference < 0.0) {
+            difference = -difference;
+        }
+        return difference <= HANDLE_TOLERANCE_DEGREES ||
+            difference >= 360.0 - HANDLE_TOLERANCE_DEGREES;
+    }
 
     function angleAt(x as Number, y as Number, cx as Number, cy as Number) as Float {
         var angle = Math.atan2((cx - x).toFloat(), (cy - y).toFloat()) * 180.0 / Math.PI;
@@ -46,20 +68,26 @@ class TimerModel {
     function beginDrag(angle as Float) as Void {
         state = SETTING;
         _lastAngle = angle;
-        // A finger just right of twelve must still be able to drag anticlockwise from zero.
-        _dragAngle = angle >= 357.0 ? 0.0 : angle;
+        _dragAngle = Dial.clampAngle(angle);
         _durationMs = Dial.durationAt(_dragAngle);
     }
 
-    function beginAdjustment(angle as Float, now as Number) as Void {
+    function beginAdjustment(angle as Float, now as Number) as Boolean {
+        var remaining = remainingMs(now);
+        if (!Dial.isNearEndpoint(angle, Dial.endpointAngle(remaining))) {
+            return false;
+        }
         if (state == RUNNING || state == PAUSED) {
-            _durationMs = remainingMs(now);
+            _durationMs = remaining;
             _dragAngle = (_durationMs * 360.0 / Dial.LAP_MS).toFloat();
             _lastAngle = angle;
             state = SETTING;
         } else {
-            beginDrag(angle);
+            // Grab the empty endpoint, not an absolute 59-minute dial position.
+            beginDrag(0.0);
+            _lastAngle = angle;
         }
+        return true;
     }
 
     function moveDrag(angle as Float) as Void {

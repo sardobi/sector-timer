@@ -41,7 +41,8 @@ function backgroundSessionStartsOnRelease(logger as Test.Logger) as Boolean {
     var platform = new FakeTimerPlatform();
     var session = new TimerSession(platform);
     Test.assertEqual(session.open(), false);
-    session.beginDrag(6.0);
+    Test.assert(session.beginDrag(0.0));
+    session.moveDrag(6.0);
     Test.assertEqual(platform.saved.state, TimerState.IDLE);
     Test.assert(platform.armed == null);
     session.endDrag();
@@ -57,7 +58,8 @@ function backgroundSessionStartsOnRelease(logger as Test.Logger) as Boolean {
 function backgroundLeaveAndReopenKeepsDeadline(logger as Test.Logger) as Boolean {
     var platform = new FakeTimerPlatform();
     var session = new TimerSession(platform);
-    session.beginDrag(90.0);
+    session.beginDrag(0.0);
+    session.moveDrag(90.0);
     session.endDrag();
     var deadline = platform.armed;
     platform.epoch += 20;
@@ -76,7 +78,8 @@ function backgroundLeaveAndReopenKeepsDeadline(logger as Test.Logger) as Boolean
 function backgroundPauseReopenAndResume(logger as Test.Logger) as Boolean {
     var platform = new FakeTimerPlatform();
     var session = new TimerSession(platform);
-    session.beginDrag(6.0);
+    session.beginDrag(0.0);
+    session.moveDrag(6.0);
     session.endDrag();
     platform.epoch += 15;
     session.tick();
@@ -99,7 +102,8 @@ function backgroundPauseReopenAndResume(logger as Test.Logger) as Boolean {
 function backgroundNotificationClaimsExpiryOnce(logger as Test.Logger) as Boolean {
     var platform = new FakeTimerPlatform();
     var session = new TimerSession(platform);
-    session.beginDrag(6.0);
+    session.beginDrag(0.0);
+    session.moveDrag(6.0);
     session.endDrag();
     platform.epoch += 60;
     Test.assertEqual(TimerExpiry.notifyIfDue(platform), true);
@@ -121,7 +125,8 @@ function backgroundNotificationClaimsExpiryOnce(logger as Test.Logger) as Boolea
 function foregroundExpirySuppressesBackgroundDuplicate(logger as Test.Logger) as Boolean {
     var platform = new FakeTimerPlatform();
     var session = new TimerSession(platform);
-    session.beginDrag(6.0);
+    session.beginDrag(0.0);
+    session.moveDrag(6.0);
     session.endDrag();
     platform.epoch += 60;
     Test.assertEqual(session.tick(), true);
@@ -148,7 +153,8 @@ function overdueTimerRecoversOnStartup(logger as Test.Logger) as Boolean {
 function earlyAndStaleCallbacksDoNotConsumeCurrentTimer(logger as Test.Logger) as Boolean {
     var platform = new FakeTimerPlatform();
     var session = new TimerSession(platform);
-    session.beginDrag(6.0);
+    session.beginDrag(0.0);
+    session.moveDrag(6.0);
     session.endDrag();
     var oldGeneration = platform.saved.generation;
     Test.assertEqual(TimerExpiry.notifyIfDue(platform), false);
@@ -171,17 +177,19 @@ function earlyAndStaleCallbacksDoNotConsumeCurrentTimer(logger as Test.Logger) a
 function cancellingAndZeroSelectionRemoveAlarm(logger as Test.Logger) as Boolean {
     var platform = new FakeTimerPlatform();
     var session = new TimerSession(platform);
-    session.beginDrag(6.0);
+    session.beginDrag(0.0);
+    session.moveDrag(6.0);
     session.endDrag();
     session.cancel();
     Test.assertEqual(platform.saved.state, TimerState.IDLE);
     Test.assert(platform.armed == null);
     platform.epoch += 60;
     Test.assertEqual(TimerExpiry.notifyIfDue(platform), false);
-    session.beginDrag(90.0);
-    session.endDrag();
     session.beginDrag(0.0);
-    session.moveDrag(270.0);
+    session.moveDrag(90.0);
+    session.endDrag();
+    Test.assert(session.beginDrag(90.0));
+    session.moveDrag(0.0);
     session.endDrag();
     Test.assertEqual(platform.saved.state, TimerState.IDLE);
     Test.assert(platform.armed == null);
@@ -192,10 +200,12 @@ function cancellingAndZeroSelectionRemoveAlarm(logger as Test.Logger) as Boolean
 function interruptedDragKeepsCommittedTimer(logger as Test.Logger) as Boolean {
     var platform = new FakeTimerPlatform();
     var session = new TimerSession(platform);
-    session.beginDrag(6.0);
+    session.beginDrag(0.0);
+    session.moveDrag(6.0);
     session.endDrag();
     var writes = platform.writes;
-    session.beginDrag(180.0);
+    Test.assert(session.beginDrag(6.0));
+    session.moveDrag(90.0);
     platform.epoch += 20;
     session.tick();
     Test.assertEqual(session.model.state, TimerModel.SETTING);
@@ -211,10 +221,11 @@ function interruptedDragKeepsCommittedTimer(logger as Test.Logger) as Boolean {
 function originalTimerCanExpireDuringReplacementPreview(logger as Test.Logger) as Boolean {
     var platform = new FakeTimerPlatform();
     var session = new TimerSession(platform);
-    session.beginDrag(6.0);
+    session.beginDrag(0.0);
+    session.moveDrag(6.0);
     session.endDrag();
-    session.beginDrag(180.0);
-    session.moveDrag(354.0);
+    Test.assert(session.beginDrag(6.0));
+    session.moveDrag(180.0);
     platform.epoch += 60;
     Test.assertEqual(session.tick(), true);
     Test.assertEqual(session.model.state, TimerModel.SETTING);
@@ -230,7 +241,8 @@ function rejectedAlarmIsSavedPausedAndReported(logger as Test.Logger) as Boolean
     var platform = new FakeTimerPlatform();
     platform.allowAlarm = false;
     var session = new TimerSession(platform);
-    session.beginDrag(6.0);
+    session.beginDrag(0.0);
+    session.moveDrag(6.0);
     session.endDrag();
     Test.assertEqual(session.error, true);
     Test.assertEqual(platform.saved.state, TimerState.PAUSED);

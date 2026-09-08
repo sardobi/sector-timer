@@ -17,10 +17,7 @@ class TimerDelegate extends WatchUi.InputDelegate {
         var y = coordinates[1];
         var type = event.getType();
         if (type == WatchUi.DRAG_TYPE_START) {
-            _dragging = _view.isDial(x, y);
-            if (_dragging) {
-                _view.session.beginDrag(Dial.angleAt(x, y, _view.centerX, _view.centerY));
-            }
+            _dragging = _view.beginDrag(x, y);
         } else if (_dragging) {
             // Ignore unstable angles near the centre, but still accept release there.
             if (_view.isDial(x, y)) {

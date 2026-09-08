@@ -218,7 +218,8 @@ function alarmDiagnosticsAreBoundedAndSurviveNewReader(logger as Test.Logger) as
 function leavingAtDeadlineDoesNotConsumeBackgroundAlarm(logger as Test.Logger) as Boolean {
     var platform = new ReliabilityTimerPlatform();
     var session = new TimerSession(platform);
-    session.beginDrag(6.0);
+    session.beginDrag(0.0);
+    session.moveDrag(6.0);
     session.endDrag();
     platform.epoch += 60;
     session.leave();

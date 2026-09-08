@@ -35,16 +35,16 @@ function adjustmentStartsAtNinetyMinutesNotThirty(logger as Test.Logger) as Bool
 }
 
 (:test)
-function adjustmentWorksAwayFromHandleAndAcrossTwelve(logger as Test.Logger) as Boolean {
+function adjustmentWorksNearHandleAndAcrossTwelve(logger as Test.Logger) as Boolean {
     var model = new TimerModel();
-    model.restore(TimerState.PAUSED, 5400000, 1000);
-    model.beginAdjustment(354.0, 1000);
+    model.restore(TimerState.PAUSED, 7200000, 1000);
+    Test.assert(model.beginAdjustment(354.0, 1000));
     model.moveDrag(6.0);
-    Test.assertEqual(model.remainingMs(1000), 5520000);
+    Test.assertEqual(model.remainingMs(1000), 7320000);
     model.moveDrag(354.0);
-    Test.assertEqual(model.remainingMs(1000), 5400000);
+    Test.assertEqual(model.remainingMs(1000), 7200000);
     model.moveDrag(324.0);
-    Test.assertEqual(model.remainingMs(1000), 5100000);
+    Test.assertEqual(model.remainingMs(1000), 6900000);
     return true;
 }
 
@@ -52,9 +52,9 @@ function adjustmentWorksAwayFromHandleAndAcrossTwelve(logger as Test.Logger) as 
 function adjustmentUsesRemainingTimeNotOriginalDuration(logger as Test.Logger) as Boolean {
     var model = new TimerModel();
     model.restore(TimerState.RUNNING, 5400000, 1000);
-    model.beginAdjustment(45.0, 601000);
+    Test.assert(model.beginAdjustment(120.0, 601000));
     Test.assertEqual(model.remainingMs(601000), 4800000);
-    model.moveDrag(51.0);
+    model.moveDrag(126.0);
     model.endDrag(701000);
     Test.assertEqual(model.remainingMs(701000), 4860000);
     return true;
@@ -91,13 +91,17 @@ function adjustmentClampsAtBothEndsWithoutWrapping(logger as Test.Logger) as Boo
 }
 
 (:test)
-function idleAdjustmentStillSetsFromDialPosition(logger as Test.Logger) as Boolean {
+function idleAndFinishedAdjustmentsGrabZeroEndpoint(logger as Test.Logger) as Boolean {
     var model = new TimerModel();
-    model.beginAdjustment(90.0, 1000);
-    Test.assertEqual(model.remainingMs(1000), 900000);
+    Test.assert(model.beginAdjustment(354.0, 1000));
+    Test.assertEqual(model.remainingMs(1000), 0);
+    model.moveDrag(0.0);
+    Test.assertEqual(model.remainingMs(1000), 60000);
     model.restore(TimerState.FINISHED, 0, 0);
-    model.beginAdjustment(180.0, 1000);
-    Test.assertEqual(model.remainingMs(1000), 1800000);
+    Test.assert(model.beginAdjustment(6.0, 1000));
+    Test.assertEqual(model.remainingMs(1000), 0);
+    model.moveDrag(12.0);
+    Test.assertEqual(model.remainingMs(1000), 60000);
     return true;
 }
 
@@ -132,9 +136,10 @@ function sessionAdjustmentRefreshesElapsedTimeBeforeDrag(logger as Test.Logger) 
     platform.saved = new TimerRecord(TimerState.RUNNING, 5400000, 105400, 7);
     var session = new TimerSession(platform);
     platform.epoch += 600;
-    session.beginDrag(0.0);
+    Test.assertEqual(session.beginDrag(180.0), false);
+    Test.assert(session.beginDrag(120.0));
     Test.assertEqual(session.model.remainingMs(session.modelTime), 4800000);
-    session.moveDrag(6.0);
+    session.moveDrag(126.0);
     session.endDrag();
     Test.assertEqual(platform.saved.durationMs, 4860000);
     Test.assertEqual(platform.saved.deadline, 105460);

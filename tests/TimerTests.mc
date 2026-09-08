@@ -91,7 +91,7 @@ function crossingTwelveAddsAndSubtractsMinutes(logger as Test.Logger) as Boolean
 (:test)
 function startingJustRightOfTwelve(logger as Test.Logger) as Boolean {
     var model = new TimerModel();
-    model.beginDrag(359.5);
+    Test.assert(model.beginAdjustment(359.5, 0));
     model.moveDrag(2.0);
     model.moveDrag(45.0);
     model.moveDrag(90.0);
