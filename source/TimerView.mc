@@ -12,6 +12,7 @@ class TimerView extends WatchUi.View {
     const PAUSE_BACKDROP_PADDING = 16;
 
     var model as TimerModel;
+    var session as TimerSession;
     var centerX as Number = 195;
     var centerY as Number = 195;
     var radius as Number = 171;
@@ -20,10 +21,13 @@ class TimerView extends WatchUi.View {
     private var _lastState as Number = -1;
     private var _visible as Boolean = false;
     private var _timerRunning as Boolean = false;
+    private var _pendingAlarm as Boolean = false;
 
-    function initialize(timerModel as TimerModel) {
+    function initialize(timerSession as TimerSession) {
         View.initialize();
-        model = timerModel;
+        session = timerSession;
+        model = session.model;
+        _pendingAlarm = session.open();
         _timer = new Timer.Timer();
     }
 
@@ -49,23 +53,41 @@ class TimerView extends WatchUi.View {
     function stop() as Void {
         _timer.stop();
         _timerRunning = false;
+        if (session.leave() || _pendingAlarm) {
+            playAlarm();
+            _pendingAlarm = false;
+        }
+    }
+
+    function reloadSession() as Void {
+        session.reload();
+        refresh();
     }
 
     function onTick() as Void {
-        var now = System.getTimer();
-        if (model.tick(now)) {
-            Attention.vibrate([
-                new Attention.VibeProfile(100, 500),
-                new Attention.VibeProfile(0, 250),
-                new Attention.VibeProfile(100, 500),
-                new Attention.VibeProfile(0, 250),
-                new Attention.VibeProfile(100, 750)
-            ]);
+        if (session.tick() || _pendingAlarm) {
+            playAlarm();
+            _pendingAlarm = false;
         }
-        var second = model.remainingMs(now) / 1000;
+        var second = model.remainingMs(session.modelTime) / 1000;
         if (_visible && (second != _lastSecond || model.state != _lastState)) {
             WatchUi.requestUpdate();
         }
+        if (_visible && session.error) {
+            session.error = false;
+            WatchUi.pushView(new TimerNoticeView(), new TimerNoticeDelegate(), WatchUi.SLIDE_IMMEDIATE);
+        }
+    }
+
+    private function playAlarm() as Void {
+        System.println("Visual Timer: foreground alarm");
+        Attention.vibrate([
+            new Attention.VibeProfile(100, 500),
+            new Attention.VibeProfile(0, 250),
+            new Attention.VibeProfile(100, 500),
+            new Attention.VibeProfile(0, 250),
+            new Attention.VibeProfile(100, 750)
+        ]);
     }
 
     function refresh() as Void {
@@ -75,7 +97,12 @@ class TimerView extends WatchUi.View {
 
     function toggle() as Void {
         onTick();
-        model.tap(System.getTimer());
+        session.toggle();
+        refresh();
+    }
+
+    function cancelTimer() as Void {
+        session.cancel();
         refresh();
     }
 
@@ -93,7 +120,7 @@ class TimerView extends WatchUi.View {
     }
 
     function onUpdate(dc as Graphics.Dc) as Void {
-        var now = System.getTimer();
+        var now = session.modelTime;
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
         dc.clear();
         dc.setColor(0x181818, Graphics.COLOR_TRANSPARENT);

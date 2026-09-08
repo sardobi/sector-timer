@@ -19,15 +19,15 @@ class TimerDelegate extends WatchUi.InputDelegate {
         if (type == WatchUi.DRAG_TYPE_START) {
             _dragging = _view.isDial(x, y);
             if (_dragging) {
-                _view.model.beginDrag(Dial.angleAt(x, y, _view.centerX, _view.centerY));
+                _view.session.beginDrag(Dial.angleAt(x, y, _view.centerX, _view.centerY));
             }
         } else if (_dragging) {
             // Ignore unstable angles near the centre, but still accept release there.
             if (_view.isDial(x, y)) {
-                _view.model.moveDrag(Dial.angleAt(x, y, _view.centerX, _view.centerY));
+                _view.session.moveDrag(Dial.angleAt(x, y, _view.centerX, _view.centerY));
             }
             if (type == WatchUi.DRAG_TYPE_STOP) {
-                _view.model.endDrag(System.getTimer());
+                _view.session.endDrag();
                 _dragging = false;
             }
         }
@@ -59,18 +59,21 @@ class TimerDelegate extends WatchUi.InputDelegate {
         if (key == WatchUi.KEY_ESC) {
             return onBack();
         }
-        return key == WatchUi.KEY_MENU;
+        if (key == WatchUi.KEY_MENU) {
+            _dragging = false;
+            _view.session.abortDrag();
+            _view.refresh();
+            var menu = new WatchUi.Menu2({:title => Rez.Strings.TimerMenuTitle});
+            menu.addItem(new WatchUi.MenuItem(Rez.Strings.CancelTimer, null, :cancel, null));
+            WatchUi.pushView(menu, new TimerMenuDelegate(_view), WatchUi.SLIDE_UP);
+            return true;
+        }
+        return false;
     }
 
     function onBack() as Boolean {
         _dragging = false;
-        if (_view.model.state == TimerModel.IDLE) {
-            System.exit();
-        } else {
-            _view.model.reset();
-            _view.refresh();
-        }
-        return true;
+        System.exit();
     }
 
     function onSwipe(event as WatchUi.SwipeEvent) as Boolean {

@@ -21,9 +21,14 @@ An original visual countdown implementation; not affiliated with Time Timer.
 - Tap the centre or press the top/select button to pause or resume. A white
   **pause icon** stays visible for the entire pause, disappearing on resume.
 - Drag again to replace the current timer, including while paused or running.
-- Press Back once to reset/cancel. Press Back on the empty dial to exit.
+  The previous timer remains committed until the new dial selection is released.
+- Press **Back once to leave the app**, without cancelling a running or paused
+  timer. Reopening restores the countdown, accounting for time spent away.
+- **Hold Back** to open the menu, then tap **Cancel timer** to stop and clear
+  it. Releasing a zero-minute dial selection also cancels.
 - At zero, the screen shows a **bell icon** and gives a three-pulse vibration.
-  Tap the centre or press Select/Back to dismiss.
+  Tap the centre or press Select to dismiss. If the app is closed, a system
+  notification announces completion instead; opening it returns to the timer.
 
 Crossing twelve o'clock adds or subtracts time without resetting the selection.
 The prototype clamps at zero and 120 minutes; it does not silently wrap.
@@ -35,71 +40,79 @@ do nothing. On the simulator, use a mouse press, move, and release.
 
 ## Prototype limitations
 
-**Keep the app open for the alarm.** This version does not schedule background
-alarms or save a countdown when the app exits or the watch restarts. Back resets
-before exiting so a running timer is not inadvertently abandoned by one press.
-It is not a replacement for the watch's native timer if you need an alarm while
-using another app or recording an activity.
+**Background notifications are not equivalent to native watch alarms.** The app
+now saves its countdown and schedules a background event, but notification
+vibration, visibility under sleep/Do Not Disturb, and scheduling latency are
+controlled by Garmin. Do not rely on this prototype for safety-critical alarms.
 
 The app respects AMOLED sleep/brightness settings and never forces the screen
-to stay on. Display sleep is distinct from leaving the app. The countdown uses
-the watch's monotonic uptime clock rather than counting UI callbacks, and catches
-up if callbacks are delayed. Battery usage, touch feel, display-sleep behaviour
-and physical vibration still require testing on the watch. Vibration is a finite
-pattern, not an indefinitely repeating alarm.
+to stay on. Display sleep is distinct from leaving the app. The countdown uses a
+saved absolute deadline rather than counting UI callbacks, so time passes even
+when no app code is running. Battery usage, display-sleep behaviour and background
+notification delivery still require testing on the watch. The custom foreground
+vibration is a finite pattern, not an indefinitely repeating alarm.
 
-No phone companion, network access, GPS, activity recording, or permissions are
-needed. The only build target is `vivoactive5` (390 x 390 pixels). The minimum API
-is 3.3.0 for drag input; the SDK's device profile controls target compatibility.
+No phone companion, network access, GPS, or activity recording is needed.
+The app requires the **Background** and **Notifications** permissions.
+The only build target is `vivoactive5` (390 x 390 pixels), with **Connect IQ API
+5.1.0 or later** firmware for the Notifications API. Update the watch firmware
+if the new PRG is rejected; the installed SDK profile alone does not establish
+the firmware on the physical watch.
 
-## Background behavior: research, not implemented
-
-Garmin provides a feasible background design, but a system notification is not
-the same thing as an unconditional native timer alarm. The current PRG still
-has the foreground-only limitations above.
+## Background behavior
 
 ### Keeping time after exit
 
-Persist the timer's absolute expiry time and running/paused state using
+The app persists a versioned record containing state, duration, absolute expiry
+time, and a generation number using
 [`Application.Storage`](https://developer.garmin.com/connect-iq/api-docs/Toybox/Application/Storage.html).
-On launch or a background callback, calculate `remaining = deadline - now`.
-No continuously running background countdown is necessary. Save changes when
-starting, pausing, resuming, replacing, or cancelling, rather than depending
-solely on `onStop()`.
+Changes are saved when starting, pausing, resuming, replacing, cancelling, or
+claiming completion, rather than depending solely on `onStop()`. No continuously
+running background countdown is necessary.
 
-`System.getTimer()` is device uptime: the clock itself does not reset merely
-because the app exits, but this app's in-memory start/duration variables are
-lost. Uptime alone cannot recover safely across device reboots.
-[`Time`](https://developer.garmin.com/connect-iq/api-docs/Toybox/Time.html) provides
-epoch timestamps. Its default clock may be user-adjusted; `CURRENT_TIME_RTC`
-ignores manual settings but can be updated by trusted sources and can throw
-`RealTimeClockNotValidException` if not valid. A persistent implementation must
-choose a consistent clock basis for both remaining time and scheduling, handle
-invalid clocks explicitly, and exercise clock changes and reboots on hardware.
+Both the foreground display and background expiry use `deadline - Time.now()`.
+The `Time.Moment` scheduled with Garmin uses that same epoch clock. This gives
+one-second resolution and recovers independently of process uptime after an app
+restart. A paused timer stores its remaining duration, so time away does not
+deplete it. An interrupted drag does not save an unreleased replacement.
+
+This version deliberately uses one consistent default clock, not a mixture of
+RTC and user-clock timestamps. **Changing the watch's clock can shorten or
+lengthen a running timer.** A backward change cannot display more than the saved
+duration, but can delay expiry. See Garmin's
+[`Time`](https://developer.garmin.com/connect-iq/api-docs/Toybox/Time.html) API.
+Clock adjustment and reboot behavior still need hardware assessment.
 
 ### Alerting without reopening the app
 
-Schedule a one-shot
+The app schedules a one-shot
 [`Background.registerForTemporalEvent(Time.Moment)`](https://developer.garmin.com/connect-iq/api-docs/Toybox/Background.html#registerForTemporalEvent-instance_function)
-at the deadline. A `System.ServiceDelegate.onTemporalEvent()` callback can read
-the saved timer, confirm it is still running and due, and post a
+at the deadline on start/resume and reconciles the registration on app launch.
+A `System.ServiceDelegate.onTemporalEvent()` callback reads the latest saved
+timer, confirms it is still running and due, and posts a
 [`Notifications.showNotification()`](https://developer.garmin.com/connect-iq/api-docs/Toybox/Notifications.html#showNotification-instance_function).
 The user can see that system notification without first reopening this app.
 
-The Notifications API starts at **5.1.0**, explicitly supports the vivoactive 5,
-and Garmin's [notification guide](https://developer.garmin.com/connect-iq/core-topics/notifications/)
-documents use from background services. The installed device profile supports
-API 5.2.0; that does not establish the firmware version on the physical watch.
-Using it would require the `Notifications` and `Background` permissions and a
-compatible minimum API or an explicit older-firmware fallback.
+Garmin's [notification guide](https://developer.garmin.com/connect-iq/core-topics/notifications/)
+documents use from background services. The notification uses the app icon and
+the platform's default launch/dismiss actions, with the timer generation as its
+associated data. An older notification cannot cancel or resume a newer timer;
+opening a notification always displays the current saved state.
+
+Foreground and background expiry share the same completion-claim helper. It
+re-reads the current record, saves a finished marker, and removes the event before
+alerting. Reopening a timer already completed by the background service shows the
+bell without another vibration. If an event was missed, opening an overdue timer
+completes it in the foreground. This is not a transactional guarantee across a
+device crash between saving completion and presenting the alert. Storage has no
+documented compare-and-set operation or callback ordering guarantee; simultaneous
+expiry/cancellation remains an important hardware scenario.
 
 [`Attention.vibrate()`](https://developer.garmin.com/connect-iq/api-docs/Toybox/Attention.html)
 and `Timer.Timer` are not available in background context. The custom three-pulse
 vibration therefore stays in the foreground; background alert presentation is
-controlled by the notification system. `Background.requestApplicationWake()`
-is an older alternative that asks the user to launch the app. It is not an
-automatic launch, and Garmin says the system can suppress the request if there
-are insufficient resources. Do not issue both mechanisms indiscriminately.
+controlled by the notification system. The app does not also issue
+`Background.requestApplicationWake()`, avoiding duplicate launch prompts.
 
 ### Scheduling restrictions and reliability
 
@@ -109,16 +122,17 @@ the **last temporal event**. A repeating `Time.Duration` must be at least five
 minutes; a one-shot `Time.Moment` is different. For watch apps, the restriction
 is cleared on application startup if the event was specified using a Moment.
 The docs do not require this call to occur inside a particular startup method.
-Short first timers and consecutive short timers must be tested separately.
+Short first timers and consecutive short timers must be assessed separately.
 
 Only one temporal event can be registered per app; registering another replaces
-it. Pause/reset must invalidate the saved running timer and delete its event.
-Resume/replacement must update the saved deadline and registration. Re-check
-the current timer generation/state in the callback to avoid stale alerts, and
-coordinate foreground and background completion so one expiry is not announced
-twice. Registration failures must be surfaced rather than silently suggesting
-that an alarm is armed. The current Back control cancels before exiting; a
-background-enabled version must separate "leave the app" from "cancel timer".
+it. Pause/cancel invalidate the saved running state and delete the event.
+Resume/replacement update the saved deadline and registration. If Garmin rejects
+a registration with `InvalidBackgroundTimeException`, the timer is saved as
+paused and an explicit **Alarm not scheduled / Timer paused** notice is shown.
+Dismiss the notice, then retry resuming once the restriction clears (or reopen the
+app for the documented Moment/startup reset). The app never quietly substitutes
+a different alarm time. Invalid stored records and unexpected storage/platform
+errors propagate instead of being silently treated as an empty or armed timer.
 
 Background services can run during an activity, but have a small memory budget
 (64 KiB on this profile) and are terminated after 30 seconds if they do not exit.
@@ -132,8 +146,9 @@ background, or a DND/sleep override. `showNotification()` has no vibration optio
 Whether it vibrates or wakes the screen under those settings needs measurement;
 do not assume CIQ notifications behave identically to phone notifications.
 The documentation consulted also does not establish whether temporal registration
-survives a reboot. Check/reconcile it on app startup and test reboot-without-
-reopening separately. No app can alert while the watch is powered off.
+survives a reboot. The app reconciles it on startup, but reboot-without-reopening
+still needs a separate hardware assessment. No app can alert while the watch is
+powered off.
 
 Before claiming background alarm reliability on hardware, measure expiry timing
 with the app open and screen off, after exit to the watch face, during another
@@ -202,9 +217,9 @@ Cancellation should be a separate, deliberate action rather than a side effect
 of navigating away. See Garmin's
 [device overview](https://www8.garmin.com/manuals/webhelp/GUID-5D183A14-BB43-4A9B-B441-5F824214CE40/EN-US/GUID-E8D90973-F651-4F66-9A08-A8858C2CB98E.html).
 
-This is not implemented yet: Back still resets, then exits on a second press.
-Change it alongside persistent countdown state and background alarm scheduling,
-not before, so leaving the app does not silently discard an active alarm.
+Back now exits immediately. Hold Back for the cancellation menu. Leaving while
+setting the dial abandons that unreleased selection, preserving any previously
+committed timer.
 
 ## Install on your watch
 
@@ -229,23 +244,45 @@ release-to-start, delayed callbacks, fixed-scale sector shrinkage, zero expiry,
 one-shot completion, pause/resume, cancellation, replacement, the twelve-o'clock
 boundary, multiple anticlockwise revolutions, the 120-minute limit, nested-sector
 angles and the transition through 60 minutes, both uptime rollover boundaries,
-and single-tap pause/resume and dismissal.
+and single-tap pause/resume and dismissal. Additional native tests cover saved
+record validation, restart recovery, background completion, stale callbacks,
+pause/cancel/replacement, registration failure, and interrupted drags.
 Tests run inside Garmin's simulator and are excluded from the release build.
+
+The SDK 9.2.0 simulator exercises real temporal callbacks and notification API
+calls after Back exits the foreground app. `Simulation > Background Events`
+can also force a callback even when no event was registered, making it useful
+for early/stale-event and registration-failure scenarios, but not by itself proof
+that a deadline was armed. Runtime logs distinguish registration, foreground
+alarms, temporal callbacks and posted expiry notifications.
+
+For a clean process-restart scenario, use `File > Kill Device` before running
+the PRG again; this preserves the timer's saved data. Do not use the simulator's
+clear/reset-data commands when checking persistence. A long button press needs a
+real held mouse button in the simulator; synthesized short clicks are not a
+substitute. In the native cancellation menu, tap the item's label.
 
 On hardware, first try a one-minute countdown and check:
 
 - Dragging clockwise/counterclockwise, across twelve, and releasing near the centre.
 - Tap to pause and resume, with a persistent pause icon; direct pause/resume
-  with Select; Back reset, then Back exit.
+  with Select; Back exit/reopen; hold Back and choose Cancel timer.
 - Continue dragging through twelve into the second revolution. At 90 minutes
   expect a full red circle with a black half-circle inside; at 120 minutes,
   expect a full black inner circle inside a red ring.
 - Screen dimming, wrist wake, notification overlays, and expiry with the screen off.
 - The three-pulse vibration, dismiss behaviour, and an uninterrupted longer timer.
+- Leave a one-minute timer using Back and wait for its system notification.
+  Open that notification; the bell should remain without a second alarm.
+- Pause, leave, wait, reopen and resume; cancellation must prevent later alerts.
 
 ## Structure
 
 `source\TimerModel.mc` owns dial math and the clock-injected state machine.
-`TimerDelegate.mc` maps input, and `TimerView.mc` draws and delivers the alarm.
+`TimerDelegate.mc` maps input, and `TimerView.mc` draws and delivers the foreground
+alarm. `TimerSession.mc` coordinates user actions, persistence and scheduling.
+`TimerRecord.mc` defines the shared saved state; `TimerPlatform.mc` provides the
+Garmin API adapter and completion helper; `TimerService.mc` is the short-lived
+background entry point.
 The timer callback runs four times per second, but the display is refreshed only
 once per elapsed second or when the interaction state changes.

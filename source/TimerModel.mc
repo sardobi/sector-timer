@@ -3,7 +3,7 @@ import Toybox.Math;
 
 module Dial {
     const LAP_MS = 3600000;
-    const MAX_MS = 2 * LAP_MS;
+    const MAX_MS = TimerState.MAX_MS;
 
     function angleAt(x as Number, y as Number, cx as Number, cy as Number) as Float {
         var angle = Math.atan2((cx - x).toFloat(), (cy - y).toFloat()) * 180.0 / Math.PI;
@@ -21,11 +21,11 @@ module Dial {
 }
 
 class TimerModel {
-    static const IDLE = 0;
-    static const SETTING = 1;
-    static const RUNNING = 2;
-    static const PAUSED = 3;
-    static const FINISHED = 4;
+    static const IDLE = TimerState.IDLE;
+    static const SETTING = TimerState.SETTING;
+    static const RUNNING = TimerState.RUNNING;
+    static const PAUSED = TimerState.PAUSED;
+    static const FINISHED = TimerState.FINISHED;
 
     var state as Number = IDLE;
     private var _durationMs as Number = 0;
@@ -34,6 +34,12 @@ class TimerModel {
     private var _dragAngle as Float = 0.0;
 
     function initialize() {
+    }
+
+    function restore(savedState as Number, remaining as Number, now as Number) as Void {
+        state = savedState;
+        _durationMs = remaining;
+        _startedAt = now;
     }
 
     function beginDrag(angle as Float) as Void {
