@@ -1,7 +1,12 @@
 # Sector Timer
 
-A standalone Garmin Connect IQ timer prototype for the **vivoactive 5**.
-An original visual countdown implementation; not affiliated with Time Timer.
+A standalone Garmin Connect IQ timer for the **vivoactive 5**. Warning: I largely
+vibe-coded this.
+
+Designed for combatting time blindness and setting countdown timers with minimal effort.
+Drag the red segment counterclockwise to set a timer of up to 180 minutes.
+
+Currently the alarm does not function very reliably when the app is backgrounded.
 
 ## Controls
 
