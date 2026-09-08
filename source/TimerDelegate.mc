@@ -65,6 +65,7 @@ class TimerDelegate extends WatchUi.InputDelegate {
             _view.refresh();
             var menu = new WatchUi.Menu2({:title => Rez.Strings.TimerMenuTitle});
             menu.addItem(new WatchUi.MenuItem(Rez.Strings.CancelTimer, null, :cancel, null));
+            menu.addItem(new WatchUi.MenuItem(Rez.Strings.AlarmLog, null, :alarmLog, null));
             WatchUi.pushView(menu, new TimerMenuDelegate(_view), WatchUi.SLIDE_UP);
             return true;
         }

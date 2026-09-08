@@ -9,8 +9,8 @@ class TimerService extends System.ServiceDelegate {
 
     function onTemporalEvent() as Void {
         var platform = new TimerPlatform();
-        System.println("Visual Timer: temporal event at " + platform.now());
-        TimerExpiry.notifyIfDue(platform);
+        platform.setDiagnostics(new TimerDiagnostics());
+        TimerExpiry.handleTemporalEvent(platform);
         Background.exit(null);
     }
 }

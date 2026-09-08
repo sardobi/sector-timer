@@ -33,7 +33,8 @@ class TimerSession {
     }
 
     function beginDrag(angle as Float) as Void {
-        model.beginDrag(angle);
+        reload();
+        model.beginAdjustment(angle, modelTime);
     }
 
     function moveDrag(angle as Float) as Void {
@@ -73,10 +74,13 @@ class TimerSession {
         commit(new TimerRecord(TimerState.IDLE, 0, 0, _record.nextGeneration()));
     }
 
-    function leave() as Boolean {
+    function leave() as Void {
         // An unfinished drag is only a preview, not a replacement timer.
         abortDrag();
-        return tick();
+    }
+
+    function recordForegroundAlarm() as Void {
+        _platform.trace("foreground vibrate returned g=" + _record.generation);
     }
 
     function abortDrag() as Void {

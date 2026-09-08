@@ -20,7 +20,9 @@ function durationRoundingAndBounds(logger as Test.Logger) as Boolean {
     Test.assertEqual(Dial.durationAt(360.0), 3600000);
     Test.assertEqual(Dial.durationAt(450.0), 4500000);
     Test.assertEqual(Dial.durationAt(720.0), 7200000);
-    Test.assertEqual(Dial.durationAt(900.0), 7200000);
+    Test.assertEqual(Dial.durationAt(900.0), 9000000);
+    Test.assertEqual(Dial.durationAt(1080.0), 10800000);
+    Test.assertEqual(Dial.durationAt(1200.0), 10800000);
     return true;
 }
 
@@ -202,15 +204,16 @@ function nestedSectorCountsDownThroughOneHour(logger as Test.Logger) as Boolean 
 }
 
 (:test)
-function twoRevolutionsClampAtTwoHours(logger as Test.Logger) as Boolean {
+function threeRevolutionsClampAtThreeHours(logger as Test.Logger) as Boolean {
     var model = new TimerModel();
     model.beginDrag(0.0);
-    for (var angle = 6; angle <= 900; angle += 6) {
+    for (var angle = 6; angle <= 1260; angle += 6) {
         model.moveDrag((angle % 360).toFloat());
     }
     Test.assertEqual(model.remainingMs(0), Dial.MAX_MS);
     Test.assertEqual(model.sectorAngle(0), 360.0);
     Test.assertEqual(model.innerSectorAngle(0), 360.0);
+    Test.assertEqual(model.innermostSectorAngle(0), 360.0);
     model.moveDrag(174.0);
     Test.assertEqual(model.remainingMs(0), Dial.MAX_MS - 60000);
     model.endDrag(1000);

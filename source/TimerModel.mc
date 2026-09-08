@@ -4,6 +4,7 @@ import Toybox.Math;
 module Dial {
     const LAP_MS = 3600000;
     const MAX_MS = TimerState.MAX_MS;
+    const MAX_ANGLE = MAX_MS * 360.0 / LAP_MS;
 
     function angleAt(x as Number, y as Number, cx as Number, cy as Number) as Float {
         var angle = Math.atan2((cx - x).toFloat(), (cy - y).toFloat()) * 180.0 / Math.PI;
@@ -11,7 +12,7 @@ module Dial {
     }
 
     function clampAngle(angle as Float) as Float {
-        return angle < 0.0 ? 0.0 : (angle > 720.0 ? 720.0 : angle);
+        return angle < 0.0 ? 0.0 : (angle > MAX_ANGLE ? MAX_ANGLE : angle);
     }
 
     function durationAt(angle as Float) as Number {
@@ -50,12 +51,26 @@ class TimerModel {
         _durationMs = Dial.durationAt(_dragAngle);
     }
 
+    function beginAdjustment(angle as Float, now as Number) as Void {
+        if (state == RUNNING || state == PAUSED) {
+            _durationMs = remainingMs(now);
+            _dragAngle = (_durationMs * 360.0 / Dial.LAP_MS).toFloat();
+            _lastAngle = angle;
+            state = SETTING;
+        } else {
+            beginDrag(angle);
+        }
+    }
+
     function moveDrag(angle as Float) as Void {
         if (state != SETTING) {
             return;
         }
         // Accumulate travel across twelve o'clock instead of wrapping to zero.
         var delta = angle - _lastAngle;
+        if (delta == 0.0) {
+            return;
+        }
         if (delta > 180.0) {
             delta -= 360.0;
         } else if (delta < -180.0) {
@@ -95,7 +110,12 @@ class TimerModel {
 
     function innerSectorAngle(now as Number) as Float {
         var extra = remainingMs(now) - Dial.LAP_MS;
-        return extra <= 0 ? 0.0 : (extra * 360.0 / Dial.LAP_MS).toFloat();
+        return extra <= 0 ? 0.0 : (extra >= Dial.LAP_MS ? 360.0 : (extra * 360.0 / Dial.LAP_MS).toFloat());
+    }
+
+    function innermostSectorAngle(now as Number) as Float {
+        var extra = remainingMs(now) - 2 * Dial.LAP_MS;
+        return extra <= 0 ? 0.0 : (extra >= Dial.LAP_MS ? 360.0 : (extra * 360.0 / Dial.LAP_MS).toFloat());
     }
 
     function tick(now as Number) as Boolean {

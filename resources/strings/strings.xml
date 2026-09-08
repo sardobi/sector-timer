@@ -1,8 +1,13 @@
 <strings>
     <string id="AppName" scope="background">Visual Timer</string>
-    <string id="TimerFinished" scope="background">Timer finished</string>
-    <string id="OpenTimer" scope="background">Open Visual Timer to dismiss.</string>
+    <string id="TimerFinished" scope="background">Time's up!</string>
+    <string id="OpenTimer" scope="background">Your countdown has finished.</string>
+    <string id="AlarmProblem" scope="background">Alarm unavailable</string>
+    <string id="BackgroundAlarmPaused" scope="background">Timer paused: background scheduling failed. Open the timer to retry.</string>
     <string id="TimerMenuTitle">Visual Timer</string>
     <string id="CancelTimer">Cancel timer</string>
+    <string id="AlarmLog">Alarm log</string>
+    <string id="NoAlarmEvents">No alarm events recorded</string>
+    <string id="AlarmLogNavigation">Swipe or tap sides&#10;Back returns</string>
     <string id="AlarmUnavailable">Alarm not&#10;scheduled&#10;Timer paused&#10;&#10;Tap to close</string>
 </strings>

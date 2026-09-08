@@ -203,13 +203,13 @@ function timerRecordLargeEpochDeltasDoNotOverflow(logger as Test.Logger) as Bool
 
 (:test)
 function timerRecordAcceptsDurationBounds(logger as Test.Logger) as Boolean {
-    Test.assertEqual(TimerState.MAX_MS, 7200000);
-    var running = TimerRecords.decode(new TimerRecord(TimerState.RUNNING, TimerState.MAX_MS, 1700007200, 0).toValue());
-    Test.assertEqual(running.remainingAt(1700000000), 7200000);
-    Test.assertEqual(running.remainingAt(1700000001), 7199000);
-    Test.assertEqual(running.remainingAt(1699999999), 7200000);
+    Test.assertEqual(TimerState.MAX_MS, 10800000);
+    var running = TimerRecords.decode(new TimerRecord(TimerState.RUNNING, TimerState.MAX_MS, 1700010800, 0).toValue());
+    Test.assertEqual(running.remainingAt(1700000000), 10800000);
+    Test.assertEqual(running.remainingAt(1700000001), 10799000);
+    Test.assertEqual(running.remainingAt(1699999999), 10800000);
     var paused = TimerRecords.decode(new TimerRecord(TimerState.PAUSED, TimerState.MAX_MS, 0, 0).toValue());
-    Test.assertEqual(paused.remainingAt(2147483647), 7200000);
+    Test.assertEqual(paused.remainingAt(2147483647), 10800000);
     var minimum = TimerRecords.decode(new TimerRecord(TimerState.RUNNING, 1, 1700000001, 0).toValue());
     Test.assertEqual(minimum.remainingAt(1700000000), 1);
     Test.assertEqual(minimum.remainingAt(1700000001), 0);

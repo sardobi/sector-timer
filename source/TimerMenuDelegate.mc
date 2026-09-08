@@ -13,6 +13,9 @@ class TimerMenuDelegate extends WatchUi.Menu2InputDelegate {
         if (item.getId() == :cancel) {
             _view.cancelTimer();
             WatchUi.popView(WatchUi.SLIDE_DOWN);
+        } else if (item.getId() == :alarmLog) {
+            var logView = new TimerDiagnosticsView(new TimerDiagnostics().readEntries());
+            WatchUi.pushView(logView, new TimerDiagnosticsDelegate(logView), WatchUi.SLIDE_UP);
         }
     }
 }

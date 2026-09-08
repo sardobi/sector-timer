@@ -10,6 +10,12 @@ class TimerView extends WatchUi.View {
     // Shared glyph height in pixels; both icons scale from this value.
     const STATUS_ICON_HEIGHT = 144;
     const PAUSE_BACKDROP_PADDING = 16;
+    const HUB_RADIUS = 12;
+    const SECOND_HOUR_COLOR = 0xA050E8;
+    const THIRD_HOUR_COLOR = 0x3088FF;
+    const SECOND_HOUR_RADIUS_SCALE = 0.67;
+    const THIRD_HOUR_RADIUS_SCALE = 0.40;
+    const IDLE_ARROW_RADIUS_SCALE = 0.80;
 
     var model as TimerModel;
     var session as TimerSession;
@@ -51,12 +57,11 @@ class TimerView extends WatchUi.View {
     }
 
     function stop() as Void {
+        _visible = false;
         _timer.stop();
         _timerRunning = false;
-        if (session.leave() || _pendingAlarm) {
-            playAlarm();
-            _pendingAlarm = false;
-        }
+        // Shutdown must not consume an expiry then cut its foreground vibration short.
+        session.leave();
     }
 
     function reloadSession() as Void {
@@ -88,6 +93,7 @@ class TimerView extends WatchUi.View {
             new Attention.VibeProfile(0, 250),
             new Attention.VibeProfile(100, 750)
         ]);
+        session.recordForegroundAlarm();
     }
 
     function refresh() as Void {
@@ -128,11 +134,18 @@ class TimerView extends WatchUi.View {
 
         dc.setColor(0xEF3038, Graphics.COLOR_TRANSPARENT);
         drawSector(dc, model.sectorAngle(now), radius);
-        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
-        drawSector(dc, model.innerSectorAngle(now), (radius * 0.67).toNumber());
+        dc.setColor(SECOND_HOUR_COLOR, Graphics.COLOR_TRANSPARENT);
+        drawSector(dc, model.innerSectorAngle(now), (radius * SECOND_HOUR_RADIUS_SCALE).toNumber());
+        dc.setColor(THIRD_HOUR_COLOR, Graphics.COLOR_TRANSPARENT);
+        drawSector(dc, model.innermostSectorAngle(now), (radius * THIRD_HOUR_RADIUS_SCALE).toNumber());
 
-        if (model.state == TimerModel.IDLE || model.state == TimerModel.SETTING) {
-            drawTicks(dc);
+        drawTicks(dc);
+        if (model.state == TimerModel.IDLE) {
+            drawIdleArrow(dc);
+        }
+        if (model.state != TimerModel.PAUSED && model.state != TimerModel.FINISHED) {
+            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+            dc.fillCircle(centerX, centerY, HUB_RADIUS);
         }
         if (model.state == TimerModel.SETTING) {
             var angle = model.remainingMs(now) * 2.0 * Math.PI / Dial.LAP_MS;
@@ -160,6 +173,29 @@ class TimerView extends WatchUi.View {
                 centerX - Math.sin(radians) * outer, centerY - Math.cos(radians) * outer
             );
         }
+        dc.setPenWidth(1);
+    }
+
+    private function drawIdleArrow(dc as Graphics.Dc) as Void {
+        var arcRadius = radius * IDLE_ARROW_RADIUS_SCALE;
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(4);
+        for (var degrees = 12; degrees < 92; degrees += 4) {
+            var a = degrees * Math.PI / 180.0;
+            var b = (degrees + 4) * Math.PI / 180.0;
+            dc.drawLine(centerX - Math.sin(a) * arcRadius, centerY - Math.cos(a) * arcRadius,
+                centerX - Math.sin(b) * arcRadius, centerY - Math.cos(b) * arcRadius);
+        }
+        var end = 92 * Math.PI / 180.0;
+        var x = centerX - Math.sin(end) * arcRadius;
+        var y = centerY - Math.cos(end) * arcRadius;
+        var tangentX = -Math.cos(end);
+        var tangentY = Math.sin(end);
+        dc.fillPolygon([
+            [x, y],
+            [x - tangentX * 19 - tangentY * 10, y - tangentY * 19 + tangentX * 10],
+            [x - tangentX * 19 + tangentY * 10, y - tangentY * 19 - tangentX * 10]
+        ]);
         dc.setPenWidth(1);
     }
 

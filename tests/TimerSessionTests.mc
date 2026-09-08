@@ -1,6 +1,7 @@
 import Toybox.Lang;
 import Toybox.Test;
 
+(:background)
 class FakeTimerPlatform extends TimerPlatform {
     var saved as TimerRecord = TimerRecords.empty();
     var epoch as Number = 100000;
@@ -60,7 +61,7 @@ function backgroundLeaveAndReopenKeepsDeadline(logger as Test.Logger) as Boolean
     session.endDrag();
     var deadline = platform.armed;
     platform.epoch += 20;
-    Test.assertEqual(session.leave(), false);
+    session.leave();
     platform.epoch += 30;
     platform.ticks = 0;
     var reopened = new TimerSession(platform);
@@ -153,6 +154,7 @@ function earlyAndStaleCallbacksDoNotConsumeCurrentTimer(logger as Test.Logger) a
     Test.assertEqual(TimerExpiry.notifyIfDue(platform), false);
     Test.assert(platform.armed == 100060);
     session.beginDrag(12.0);
+    session.moveDrag(18.0);
     session.endDrag();
     platform.epoch += 60;
     Test.assertEqual(TimerExpiry.notifyIfDue(platform), false);
@@ -179,6 +181,7 @@ function cancellingAndZeroSelectionRemoveAlarm(logger as Test.Logger) as Boolean
     session.beginDrag(90.0);
     session.endDrag();
     session.beginDrag(0.0);
+    session.moveDrag(270.0);
     session.endDrag();
     Test.assertEqual(platform.saved.state, TimerState.IDLE);
     Test.assert(platform.armed == null);
@@ -197,7 +200,7 @@ function interruptedDragKeepsCommittedTimer(logger as Test.Logger) as Boolean {
     session.tick();
     Test.assertEqual(session.model.state, TimerModel.SETTING);
     Test.assertEqual(platform.saved.deadline, 100060);
-    Test.assertEqual(session.leave(), false);
+    session.leave();
     Test.assertEqual(platform.writes, writes);
     Test.assertEqual(session.model.remainingMs(session.modelTime), 40000);
     Test.assertEqual(session.model.state, TimerModel.RUNNING);
@@ -211,6 +214,7 @@ function originalTimerCanExpireDuringReplacementPreview(logger as Test.Logger) a
     session.beginDrag(6.0);
     session.endDrag();
     session.beginDrag(180.0);
+    session.moveDrag(354.0);
     platform.epoch += 60;
     Test.assertEqual(session.tick(), true);
     Test.assertEqual(session.model.state, TimerModel.SETTING);

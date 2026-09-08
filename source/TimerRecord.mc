@@ -8,7 +8,7 @@ module TimerState {
     const RUNNING = 2;
     const PAUSED = 3;
     const FINISHED = 4;
-    const MAX_MS = 7200000;
+    const MAX_MS = 10800000;
 }
 
 (:background)
