@@ -4,7 +4,7 @@ import Toybox.System;
 import Toybox.WatchUi;
 
 (:background)
-class VisualTimerApp extends Application.AppBase {
+class SectorTimerApp extends Application.AppBase {
     private var _view as TimerView?;
 
     function initialize() {
@@ -18,7 +18,7 @@ class VisualTimerApp extends Application.AppBase {
         platform.setDiagnostics(new TimerDiagnostics());
         var view = new TimerView(new TimerSession(platform));
         _view = view;
-        System.println("Visual Timer: foreground restored state " + view.model.state);
+        System.println("Sector Timer: foreground restored state " + view.model.state);
         return [view, new TimerDelegate(view)];
     }
 

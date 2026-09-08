@@ -85,7 +85,7 @@ class TimerView extends WatchUi.View {
     }
 
     private function playAlarm() as Void {
-        System.println("Visual Timer: foreground alarm");
+        System.println("Sector Timer: foreground alarm");
         Attention.vibrate([
             new Attention.VibeProfile(100, 500),
             new Attention.VibeProfile(0, 250),

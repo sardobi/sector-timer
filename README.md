@@ -1,4 +1,4 @@
-# Visual Timer
+# Sector Timer
 
 A standalone Garmin Connect IQ timer prototype for the **vivoactive 5**.
 An original visual countdown implementation; not affiliated with Time Timer.
@@ -238,7 +238,7 @@ Alternatively set `CIQ_DEVELOPER_KEY` to your key's path. If needed, pass
 the machine-level `JAVA_HOME`, so it works from a terminal opened before Java
 was installed.
 
-`Build` creates the signed release **`bin\VisualTimer.prg`**.
+`Build` creates the signed release **`bin\SectorTimer.prg`**.
 `Test` compiles and runs Monkey C's native Run No Evil tests on the vivoactive 5
 simulator. `Run` builds a debug app and leaves it running in the simulator until
 you exit it. Simulator logs and all generated files are ignored by Git.
@@ -274,7 +274,7 @@ dark circular background; it does not change either glyph's size.
 The other constants control the white hub size, the purple/blue layers' colors
 and radii, and the idle arrow's distance from the centre.
 These are drawing settings only: the centre tap target and outer drag area
-remain unchanged. Rebuild and copy the new `bin\VisualTimer.prg` to the watch
+remain unchanged. Rebuild and copy the new `bin\SectorTimer.prg` to the watch
 after editing; an already-installed app will not pick up source changes.
 
 The background notification is customisable: edit `TimerFinished` (subtitle)
@@ -305,9 +305,12 @@ committed timer.
    if it interferes with file access.
 3. In File Explorer, open the watch's storage and its **`GARMIN\APPS`** directory
    (sometimes under **Internal Storage**).
-4. Copy **`bin\VisualTimer.prg`** into that directory. Do not copy the debug XML,
-   test PRG, or signing key. Replace the same PRG when updating.
-5. Safely disconnect the watch, then find **Visual Timer** in its apps list.
+4. Copy **`bin\SectorTimer.prg`** into that directory. Do not copy the debug XML,
+   test PRG, or signing key. When updating an existing sideload, overwrite its
+   existing PRG filename (including `VisualTimer.prg` for earlier builds) rather
+   than leaving both files on the watch. The application ID and storage keys
+   are unchanged by the rename.
+5. Safely disconnect the watch, then find **Sector Timer** in its apps list.
    If needed, add it through the watch's app list customization.
 
 Sideloading is for personal development and does not require Store publication.

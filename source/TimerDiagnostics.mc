@@ -59,6 +59,6 @@ class TimerDiagnostics {
         }
         entries.add(entry);
         writeValue(entries);
-        System.println("Visual Timer: " + entry);
+        System.println("Sector Timer: " + entry);
     }
 }

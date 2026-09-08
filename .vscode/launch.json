@@ -2,7 +2,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Visual Timer (vivoactive 5)",
+            "name": "Sector Timer (vivoactive 5)",
             "type": "monkeyc",
             "request": "launch",
             "stopAtLaunch": false,

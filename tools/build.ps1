@@ -27,9 +27,9 @@ $DeveloperKey = (Resolve-Path -LiteralPath $DeveloperKey).Path
 $bin = Join-Path $root 'bin'
 New-Item -ItemType Directory -Path $bin -Force | Out-Null
 $filename = switch ($Mode) {
-    'Build' { 'VisualTimer.prg' }
-    'Test' { 'VisualTimer-tests.prg' }
-    'Run' { 'VisualTimer-debug.prg' }
+    'Build' { 'SectorTimer.prg' }
+    'Test' { 'SectorTimer-tests.prg' }
+    'Run' { 'SectorTimer-debug.prg' }
 }
 $output = Join-Path $bin $filename
 $jungle = if ($Mode -eq 'Test') { 'tests.jungle' } else { 'monkey.jungle' }

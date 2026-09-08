@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <iq:manifest xmlns:iq="http://www.garmin.com/xml/connectiq" version="3">
     <iq:application id="b681d2d276dd4b53b535187a38098372" type="watch-app"
-        name="@Strings.AppName" entry="VisualTimerApp"
+        name="@Strings.AppName" entry="SectorTimerApp"
         launcherIcon="@Drawables.LauncherIcon" minApiLevel="5.1.0">
         <iq:products>
             <iq:product id="vivoactive5"/>
