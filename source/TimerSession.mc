@@ -83,6 +83,10 @@ class TimerSession {
         _platform.trace("foreground vibrate returned g=" + _record.generation);
     }
 
+    function recordEnvironment(summary as String) as Void {
+        _platform.trace("settings " + summary);
+    }
+
     function abortDrag() as Void {
         restoreModel();
     }

@@ -16,7 +16,7 @@ class SectorTimerApp extends Application.AppBase {
     function getInitialView() as [WatchUi.Views] or [WatchUi.Views, WatchUi.InputDelegates] {
         var platform = new TimerPlatform();
         platform.setDiagnostics(new TimerDiagnostics());
-        var view = new TimerView(new TimerSession(platform));
+        var view = new TimerView(new TimerSession(platform), null);
         _view = view;
         System.println("Sector Timer: foreground restored state " + view.model.state);
         return [view, new TimerDelegate(view)];

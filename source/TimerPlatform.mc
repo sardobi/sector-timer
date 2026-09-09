@@ -66,6 +66,7 @@ class TimerPlatform {
     }
 
     function notifyExpired(record as TimerRecord) as Void {
+        trace("notify settings " + AlertSettings.read().summary());
         Notifications.showNotification(Rez.Strings.AppName, Rez.Strings.TimerFinished, {
             :body => Rez.Strings.OpenTimer,
             :data => record.generation,

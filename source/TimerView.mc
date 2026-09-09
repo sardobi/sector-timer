@@ -16,12 +16,18 @@ class TimerView extends WatchUi.View {
     const SECOND_HOUR_RADIUS_SCALE = 0.67;
     const THIRD_HOUR_RADIUS_SCALE = 0.40;
     const IDLE_ARROW_RADIUS_SCALE = 0.80;
+    const ALERT_ICON_HEIGHT = 24;
+    const ALERT_TOUCH_RADIUS = 44;
+    const ALERT_RIM_MARGIN = 20;
+    const ALERT_OFFSET_SCALE = 0.70;
 
     var model as TimerModel;
     var session as TimerSession;
     var centerX as Number = 195;
     var centerY as Number = 195;
     var radius as Number = 171;
+    var environment as TimerEnvironment;
+    private var _lastEnvironmentSecond as Number = -1;
     private var _timer as Timer.Timer;
     private var _lastSecond as Number = -1;
     private var _lastState as Number = -1;
@@ -29,11 +35,13 @@ class TimerView extends WatchUi.View {
     private var _timerRunning as Boolean = false;
     private var _pendingAlarm as Boolean = false;
 
-    function initialize(timerSession as TimerSession) {
+    function initialize(timerSession as TimerSession, timerEnvironment as TimerEnvironment?) {
         View.initialize();
         session = timerSession;
         model = session.model;
+        environment = timerEnvironment == null ? new TimerEnvironment(session) : timerEnvironment;
         _pendingAlarm = session.open();
+        environment.refresh();
         _timer = new Timer.Timer();
     }
 
@@ -45,6 +53,7 @@ class TimerView extends WatchUi.View {
 
     function onShow() as Void {
         _visible = true;
+        _lastEnvironmentSecond = -1;
         refresh();
         if (!_timerRunning) {
             _timer.start(method(:onTick), 250, true);
@@ -75,7 +84,15 @@ class TimerView extends WatchUi.View {
             _pendingAlarm = false;
         }
         var second = model.remainingMs(session.modelTime) / 1000;
-        if (_visible && (second != _lastSecond || model.state != _lastState)) {
+        var environmentChanged = false;
+        var environmentSecond = session.modelTime / 1000;
+        // Device queries must not run in the high-frequency drag/redraw path.
+        if (_visible && model.state != TimerModel.SETTING &&
+            environmentSecond != _lastEnvironmentSecond) {
+            environmentChanged = environment.refresh();
+            _lastEnvironmentSecond = environmentSecond;
+        }
+        if (_visible && (environmentChanged || second != _lastSecond || model.state != _lastState)) {
             WatchUi.requestUpdate();
         }
         if (_visible && session.error) {
@@ -126,7 +143,29 @@ class TimerView extends WatchUi.View {
     }
 
     function beginDrag(x as Number, y as Number) as Boolean {
-        return isDial(x, y) && session.beginDrag(Dial.angleAt(x, y, centerX, centerY));
+        return !isEnvironmentIcon(x, y) && isDial(x, y) &&
+            session.beginDrag(Dial.angleAt(x, y, centerX, centerY));
+    }
+
+    function isEnvironmentIcon(x as Number, y as Number) as Boolean {
+        if ((environment.settings.warningCode() == 0 && !environment.hasActivity()) ||
+            isCenter(x, y)) {
+            return false;
+        }
+        var dx = x - centerX;
+        var dy = y - centerY;
+        var innerRim = radius - ALERT_RIM_MARGIN;
+        // Keep the rim available for grabbing the sector, even beside the symbol.
+        if (dx * dx + dy * dy >= innerRim * innerRim) {
+            return false;
+        }
+        dy -= (radius * ALERT_OFFSET_SCALE).toNumber();
+        return dx * dx + dy * dy <= ALERT_TOUCH_RADIUS * ALERT_TOUCH_RADIUS;
+    }
+
+    function showAlertSettings() as Void {
+        var view = new TimerAlertView(environment);
+        WatchUi.pushView(view, new TimerAlertDelegate(view), WatchUi.SLIDE_UP);
     }
 
     function onUpdate(dc as Graphics.Dc) as Void {
@@ -159,6 +198,11 @@ class TimerView extends WatchUi.View {
         } else if (model.state == TimerModel.FINISHED) {
             drawBell(dc);
         }
+        if (environment.settings.warningCode() != 0) {
+            drawAlertIcon(dc);
+        } else if (environment.showsActivityIndicator()) {
+            drawActivityIcon(dc);
+        }
         _lastSecond = model.remainingMs(now) / 1000;
         _lastState = model.state;
     }
@@ -175,6 +219,46 @@ class TimerView extends WatchUi.View {
                 centerX - Math.sin(radians) * outer, centerY - Math.cos(radians) * outer
             );
         }
+
+        dc.setPenWidth(1);
+    }
+
+    private function drawAlertIcon(dc as Graphics.Dc) as Void {
+        var y = centerY + (radius * ALERT_OFFSET_SCALE).toNumber();
+        var half = ALERT_ICON_HEIGHT / 2;
+        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(centerX, y, half + 5);
+        dc.setColor(0xFFCC44, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(centerX, y - half / 3, half / 2);
+        dc.fillRectangle(centerX - half / 2, y - half / 3, half, half);
+        dc.fillRectangle(centerX - half * 3 / 4, y + half / 2, half * 3 / 2, 2);
+        dc.fillCircle(centerX, y + half - 1, 2);
+        dc.setPenWidth(5);
+        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
+        dc.drawLine(centerX - half, y + half, centerX + half, y - half);
+        dc.setPenWidth(2);
+        dc.setColor(0xFFCC44, Graphics.COLOR_TRANSPARENT);
+        dc.drawLine(centerX - half, y + half, centerX + half, y - half);
+        dc.setPenWidth(1);
+    }
+
+    private function drawActivityIcon(dc as Graphics.Dc) as Void {
+        var y = centerY + (radius * ALERT_OFFSET_SCALE).toNumber();
+        var half = ALERT_ICON_HEIGHT / 2;
+        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(centerX, y, half + 5);
+        dc.setColor(0xCCCCCC, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(centerX + half / 3, y - half * 3 / 4, half / 4);
+        dc.setPenWidth(2);
+        dc.drawLine(centerX + half / 6, y - half / 3, centerX - half / 6, y + half / 3);
+        dc.drawLine(centerX, y - half / 6, centerX - half / 2, y - half / 3);
+        dc.drawLine(centerX - half / 2, y - half / 3, centerX - half * 3 / 4, y + half / 6);
+        dc.drawLine(centerX, y - half / 6, centerX + half / 2, y + half / 6);
+        dc.drawLine(centerX + half / 2, y + half / 6, centerX + half * 3 / 4, y - half / 6);
+        dc.drawLine(centerX - half / 6, y + half / 3, centerX + half / 3, y + half / 2);
+        dc.drawLine(centerX + half / 3, y + half / 2, centerX + half / 2, y + half);
+        dc.drawLine(centerX - half / 6, y + half / 3, centerX - half / 2, y + half * 3 / 4);
+        dc.drawLine(centerX - half / 2, y + half * 3 / 4, centerX - half, y + half / 2);
         dc.setPenWidth(1);
     }
 

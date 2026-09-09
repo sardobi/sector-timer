@@ -3,11 +3,25 @@
     <string id="TimerFinished" scope="background">Time's up!</string>
     <string id="OpenTimer" scope="background">Your countdown has finished.</string>
     <string id="AlarmProblem" scope="background">Alarm unavailable</string>
-    <string id="BackgroundAlarmPaused" scope="background">Timer paused: background scheduling failed. Open the timer to retry.</string>
+    <string id="BackgroundAlarmPaused" scope="background">We couldn't set the alert. Your timer is paused. Open Sector Timer to try again.</string>
     <string id="TimerMenuTitle">Sector Timer</string>
     <string id="CancelTimer">Cancel timer</string>
     <string id="AlarmLog">Alarm log</string>
     <string id="NoAlarmEvents">No alarm events recorded</string>
     <string id="AlarmLogNavigation">Swipe or tap sides&#10;Back returns</string>
-    <string id="AlarmUnavailable">Alarm not&#10;scheduled&#10;Timer paused&#10;&#10;Tap to close</string>
+    <string id="AlarmUnavailable">Couldn't set&#10;the alert&#10;Timer paused&#10;&#10;Tap to close</string>
+    <string id="AlertSettingsTitle">Alert settings</string>
+    <string id="AlertDnd">Do Not Disturb is on.&#10;You may miss the alert&#10;when your timer ends.&#10;To receive timer alerts,&#10;turn off Do Not Disturb&#10;on your watch.</string>
+    <string id="AlertVibration">Your watch won't vibrate&#10;when the timer ends.&#10;You may still see an alert.&#10;To feel the alert, turn on&#10;vibration in your watch&#10;settings.</string>
+    <string id="AlertBoth">You may miss timer alerts.&#10;On your watch, turn off&#10;Do Not Disturb and&#10;turn on vibration.</string>
+    <string id="AlertNoWarning">Do Not Disturb is off.&#10;Your watch can vibrate.&#10;If you miss a timer alert,&#10;check app notifications&#10;in your watch settings.</string>
+    <string id="AlertUnknown">Check your watch settings.&#10;Allow app notifications&#10;and turn on vibration.&#10;Turn off Do Not Disturb&#10;to help avoid missing&#10;your timer's alert.</string>
+    <string id="ActivitySettingsTitle">Activity alerts</string>
+    <string id="ActivityRunning">Activity in progress</string>
+    <string id="ActivityStopped">Activity paused</string>
+    <string id="ActivityAutoPaused">Activity auto-paused</string>
+    <string id="ActivityNone">No activity in progress</string>
+    <string id="ActivityUnknown">Using watch activities</string>
+    <string id="ActivityAlertInfo">To get timer alerts while&#10;you track an activity,&#10;allow app notifications&#10;under During Activity&#10;in your watch settings.</string>
+    <string id="AlertNavigation">Tap for more&#10;Back to return</string>
 </strings>

@@ -34,8 +34,12 @@ class TimerDelegate extends WatchUi.InputDelegate {
 
     function onTap(event as WatchUi.ClickEvent) as Boolean {
         var coordinates = event.getCoordinates();
-        if (!_dragging && _view.isCenter(coordinates[0], coordinates[1])) {
-            _view.toggle();
+        if (!_dragging) {
+            if (_view.isEnvironmentIcon(coordinates[0], coordinates[1])) {
+                _view.showAlertSettings();
+            } else if (_view.isCenter(coordinates[0], coordinates[1])) {
+                _view.toggle();
+            }
         }
         return true;
     }
@@ -63,6 +67,7 @@ class TimerDelegate extends WatchUi.InputDelegate {
             var menu = new WatchUi.Menu2({:title => Rez.Strings.TimerMenuTitle});
             menu.addItem(new WatchUi.MenuItem(Rez.Strings.CancelTimer, null, :cancel, null));
             menu.addItem(new WatchUi.MenuItem(Rez.Strings.AlarmLog, null, :alarmLog, null));
+            menu.addItem(new WatchUi.MenuItem(Rez.Strings.AlertSettingsTitle, null, :alertSettings, null));
             WatchUi.pushView(menu, new TimerMenuDelegate(_view), WatchUi.SLIDE_UP);
             return true;
         }

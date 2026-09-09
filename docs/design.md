@@ -8,6 +8,7 @@ root, not this documentation directory.
 
 - [Controls](#controls)
 - [Platform behavior and compatibility](#platform-behavior-and-compatibility)
+- [Alert settings and warnings](#alert-settings-and-warnings)
 - [Background behavior](#background-behavior)
 - [Development and appearance settings](#development)
 - [Install on your watch](#install-on-your-watch)
@@ -49,6 +50,16 @@ root, not this documentation directory.
 - The same menu has **Alarm log** for investigating missed alerts. It retains
   recent alarm events across app launches; swipe through them or press Select
   for older entries. Tap right for older, left for newer. Back returns.
+- A small amber crossed-out bell near the bottom of the dial warns about DND
+  or disabled watch vibration. Tap it for the reason and how to change the
+  setting. **Hold Back > Alert settings** opens the same dialog at any time.
+  When an activity is open and no warning is detected, a neutral grey activity
+  symbol occupies the same spot. Tap it for the During Activity notification
+  reminder. It remains while the activity is paused and disappears when it ends.
+  Tap, swipe or Select switches between alert and activity settings; Back returns
+  without changing the timer. Amber warnings take priority over the neutral symbol.
+  Both symbols have a generous invisible touch target; the centre button and a
+  20-pixel band inside the rim remain reserved for the timer's existing controls.
 - At zero, the screen shows a **bell icon** and gives a three-pulse vibration.
   Tap the centre or press Select to dismiss. If the app is closed, a system
   notification announces completion instead; opening it returns to the timer.
@@ -62,7 +73,7 @@ gesture, even if it subsequently crosses the handle. There is no separate tap
 required: press near the handle, drag, and release. Once grabbed, movement is
 unrestricted around the dial and relative to the remaining duration.
 Unmoved selections retain their exact
-remainder; movement snaps to whole minutes. Taps on the outer dial do nothing.
+remainder; movement snaps to whole minutes. Other taps on the outer dial do nothing.
 On the simulator, use a mouse press, move, and release.
 
 ## Platform behavior and compatibility
@@ -87,6 +98,47 @@ The only build target is `vivoactive5` (390 x 390 pixels), with **Connect IQ API
 5.1.0 or later** firmware for the Notifications API. Update the watch firmware
 if the new PRG is rejected; the installed SDK profile alone does not establish
 the firmware on the physical watch.
+
+## Alert settings and warnings
+
+`System.getDeviceSettings()` exposes `doNotDisturb` and `vibrateOn`; both are
+guarded by `has` checks. A missing value is unknown, not a confirmed safe setting.
+The indicator appears when DND is explicitly on, vibration is explicitly off, or
+both. It does not pause the timer, override watch preferences or skip notification
+attempts. Disabled vibration does not necessarily prevent a visible banner.
+
+Settings are sampled on opening/returning to the dial and at most once per
+second while it is visible, including when idle or paused. Device queries are
+suspended while dragging and resume after release; drag redraws never force
+settings polling. The dialog rereads settings when drawn. Changed readings
+are logged, not every poll; background notification attempts also log the current
+DND/vibration values. Foreground vibration behavior is otherwise unchanged.
+
+The public API does **not** expose the watch's General Use / During Activity
+app-notification preferences. No icon therefore means only that no supported
+warning condition was detected, not that delivery is guaranteed. The dialog's
+second page reminds users to allow app notifications during activities.
+The user confirmed background notifications
+during a native activity after enabling app notifications in During Activity.
+
+`TimerEnvironment.readActivityState()` reads `Activity.getActivityInfo().timerState`
+in the foreground. The user confirmed that the vivoactive 5 reports a native
+recording as `3` while running, `1` while paused, and `0` before/after the activity.
+States `1`, `2` (Auto-Pause), and `3` show a neutral grey activity symbol unless
+an amber warning takes priority. Zero, unavailable, or unrecognized states do not.
+An activity-state change never becomes an alert-disabled warning.
+
+The neutral symbol opens the activity page directly; amber warnings open their
+reason first, with the activity note on the next page. Activity settings explain
+that timer alerts depend on allowing During Activity app notifications, a
+preference the app cannot read. User-facing messages give plain-language guidance,
+without raw state numbers or technical delivery disclaimers. Activity status is
+shown as, for example, "Activity in progress" or "Activity paused"; raw values
+remain in the `activityProbe` diagnostics. No activity recording, sensor access, or new permissions are
+requested. See the [hardware activity checks](testing.md#native-activity-detection).
+
+Sources: [Device settings](https://developer.garmin.com/connect-iq/api-docs/Toybox/System/DeviceSettings.html),
+[Activity states](https://developer.garmin.com/connect-iq/api-docs/Toybox/Activity.html).
 
 ## Background behavior
 
@@ -278,6 +330,10 @@ const THIRD_HOUR_COLOR = 0x3088FF;
 const SECOND_HOUR_RADIUS_SCALE = 0.67;
 const THIRD_HOUR_RADIUS_SCALE = 0.40;
 const IDLE_ARROW_RADIUS_SCALE = 0.80;
+const ALERT_ICON_HEIGHT = 24;
+const ALERT_TOUCH_RADIUS = 44;
+const ALERT_RIM_MARGIN = 20;
+const ALERT_OFFSET_SCALE = 0.70;
 ```
 
 `STATUS_ICON_HEIGHT` is the shared height in pixels of the white pause and bell
@@ -288,8 +344,13 @@ height. For example, use `120` for smaller icons or `168` for larger ones.
 dark circular background; it does not change either glyph's size.
 The other constants control the white hub size, the purple/blue layers' colors
 and radii, and the idle arrow's distance from the centre.
-These are drawing settings only: the centre tap target and outer drag area
-remain unchanged. Rebuild and copy the new `bin\SectorTimer.prg` to the watch
+The `ALERT_*` constants control both environment glyphs' height, their touch radius,
+the protected inner rim band, and their vertical offset below the centre as a
+fraction of the dial radius. The touch target excludes the centre button and
+the protected rim band, so enlarging it does not steal pause or endpoint gestures.
+Apart from the touch radius and rim margin, these are drawing settings only; the
+centre tap target and outer drag area remain unchanged. Rebuild and copy the new
+`bin\SectorTimer.prg` to the watch
 after editing; an already-installed app will not pick up source changes.
 
 To make grabbing the endpoint more or less forgiving, edit
@@ -355,6 +416,11 @@ starts, untouched background registration, multi-hour handles, radial hit testin
 and unrestricted movement after grabbing the endpoint.
 `DialGeometryTests.mc` covers shared rounded coordinates for the handle and sector
 edge, cardinal positions, and handle placement through hour boundaries.
+`AlertSettingsTests.mc` covers known/unknown warning states, reason text selection,
+change-only logging, activity-state transitions, warning priority, touch-target
+separation, visible settings refresh, and unchanged timer scheduling under warnings
+or activity changes. Drag regressions ensure repeated redraws do not poll device
+settings, including drags lasting several seconds.
 `BackgroundReliabilityTests.mc` covers notification exceptions, replacement
 during notification, early-callback rearming, exact registration readback,
 bounded log persistence, and leaving at the deadline without consuming the alarm.
@@ -386,5 +452,8 @@ Garmin API adapter and completion helper; `TimerService.mc` is the short-lived
 background entry point.
 `TimerDiagnostics.mc` retains the bounded alarm log; `TimerDiagnosticsView.mc`
 displays it from the watch's menu.
+`TimerAlertSettings.mc` reads supported device settings; `TimerEnvironment.mc`
+samples foreground settings and the activity state.
+`TimerAlertView.mc` explains warning reasons and unreadable activity preferences.
 The timer callback runs four times per second, but the display is refreshed only
 once per elapsed second or when the interaction state changes.

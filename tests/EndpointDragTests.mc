@@ -120,7 +120,7 @@ function endpointGateAppliesOnlyWhenStartingTheDrag(logger as Test.Logger) as Bo
 function viewAcceptsEndpointButNotCentreOrOppositeSide(logger as Test.Logger) as Boolean {
     var platform = new FakeTimerPlatform();
     var session = new TimerSession(platform);
-    var view = new TimerView(session);
+    var view = new TimerView(session, null);
     Test.assertEqual(view.beginDrag(195, 195), false);
     Test.assertEqual(view.beginDrag(195, 5), true);
     session.abortDrag();

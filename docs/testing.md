@@ -19,6 +19,23 @@ cause. A foreground GGlance session does not categorically prevent delivery.
 These results support normal background operation. The remaining tests target
 state changes and device settings rather than repeating the same scenario.
 
+Further user reports on 9 September:
+
+- Three one-minute timers in quick succession each notified while backgrounded.
+- A paused one-minute timer remained paused after three minutes away, with no
+  notification. Resume after that pause was not explicitly reported.
+- Extending a nearly expired timer to two minutes resulted in an alert about
+  two minutes later. Cancellation near expiry is a separate remaining case.
+- Native activities initially suppressed notifications even after returning to
+  the watch face. Enabling app notifications in **During Activity** allowed Sector
+  Timer to notify successfully during the activity. This is a watch-setting
+  dependency, not evidence that native activities inherently prevent alerts.
+- The watch did not sleep with the native activity screen foregrounded, so that
+  exact screen-sleep combination has not been exercised.
+- Native activity detection reported `0` with no activity, `3` while recording,
+  `1` while paused, and returned to `0` after the activity ended. Auto-Pause (`2`)
+  has not been separately confirmed on hardware.
+
 ## Highest-value checks before release
 
 | Scenario | Procedure | Expected result |
@@ -49,6 +66,57 @@ as passed after that scenario has actually been exercised.
   is not an elapsed-time guarantee across clock adjustments.
 - Once packaged for the store, repeat a short background timer and pause/resume
   using the store-installed app. Keep the application ID and signing key stable.
+
+## Settings-warning checks
+
+With no activity open, toggle DND explicitly with vibration enabled: the amber crossed-out bell should
+appear on the dial. Tap it to see the DND explanation, then press Back. The timer
+must keep counting down throughout. Turn DND off and the symbol should disappear.
+Repeat with vibration off, then with DND on and vibration off, to check the distinct
+explanations. Do this while idle, running and paused, and after leaving/reopening.
+Tap slightly beside the symbol rather than precisely on it: the expanded target
+should open its explanation. Centre taps must still pause/resume, and a handle
+near six o'clock must remain draggable from the rim.
+
+Changing During Activity app notifications alone cannot trigger an automatic
+warning, because that preference is not exposed by the API. The dialog must not
+claim notifications are guaranteed when the bell is absent.
+
+## Native-activity detection
+
+Install the new build while preserving the existing PRG filename and log setup.
+Disconnect USB before testing. No activity permission or recording is created by
+the activity-state reader.
+
+1. With no native activity open, open Sector Timer and choose **hold Back >
+   Alert settings**. Tap once for **Activity alerts**. Record the
+   activity status shown in words.
+2. Leave Sector Timer and start a built-in activity recording. Return to the watch
+   face without stopping the recording, reopen Sector Timer, and record the same
+   status again. With DND off and vibration on, a neutral grey activity symbol
+   should appear. Tapping it should open the activity explanation directly,
+   without pausing the countdown.
+3. If practical, repeat with the native activity timer stopped/paused but not yet
+   saved, then after saving or discarding it. Auto-Pause may produce a different
+   state from manually stopping the timer. The symbol should remain while paused
+   and disappear after the activity ends.
+4. Record the native activity name and watch firmware. Reconnect and collect the
+   app text log; `settings ... activityProbe=...` entries preserve changes and
+   an initial reading for each app launch.
+
+Also enable DND or disable vibration during an open activity: the amber bell
+should replace the grey symbol and open the warning reason first. Tap to reach
+the activity page. Clearing the warning should restore the neutral symbol if the
+activity is still open. Exercise this with an idle, running and paused countdown.
+
+The API defines `0` as no active recording, `1` as recording with timer stopped,
+`2` as Auto-Pause, and `3` as recording with timer running. Unavailable/unrecognized
+states show no activity symbol; the dialog gives general activity guidance.
+Raw state numbers are kept in diagnostics rather than user-facing messages.
+The user confirmed the native recording context on this vivoactive 5; other
+devices or firmware should repeat these comparisons. Activity detection does
+not reveal whether During Activity notifications are allowed and must never
+claim the alarm is disabled on that basis.
 
 ## Collecting evidence
 
